@@ -129,3 +129,133 @@ SELECT
 	FLOOR(EXTRACT(HOUR FROM order_time)/2)*2 as start_time,
 	FLOOR(EXTRACT(HOUR FROM order_time)/2)*2 + 2 as end_time,
 	COUNT(*) as total_orders
+FROM orders
+GROUP BY 1, 2
+ORDER BY 3 DESC
+
+-- 23:55PM /2 -- 11 * 2 = 22 start, 22 +2 
+22-11:59:59 PM
+
+-- SELECT 00:59:59AM -- 0
+-- SELECT 01:59:59AM -- 1
+-- 0
+
+
+-- 3. Order Value Analysis
+-- Question: Find the average order value per customer who has placed more than 750 orders.
+-- Return customer_name, and aov(average order value)
+
+
+SELECT 
+	-- o.customer_id,
+	c.customer_name,
+	AVG(o.total_amount) as aov
+FROM orders as o
+	JOIN customers as c
+	ON c.customer_id = o.customer_id
+GROUP BY 1
+HAVING  COUNT(order_id) > 750
+
+
+-- 4. High-Value Customers
+-- Question: List the customers who have spent more than 100K in total on food orders.
+-- return customer_name, and customer_id!
+
+
+SELECT 
+	-- o.customer_id,
+	c.customer_name,
+	SUM(o.total_amount) as total_spent
+FROM orders as o
+	JOIN customers as c
+	ON c.customer_id = o.customer_id
+GROUP BY 1
+HAVING SUM(o.total_amount) > 100000
+
+
+
+-- 5. Orders Without Delivery
+-- Question: Write a query to find orders that were placed but not delivered. 
+-- Return each restuarant name, city and number of not delivered orders 
+
+SELECT 
+	r.restaurant_name,
+	COUNT(o.order_id) as cnt_not_delivered_orders
+FROM orders as o
+LEFT JOIN 
+restaurants as r
+ON r.restaurant_id = o.restaurant_id
+LEFT JOIN
+deliveries as d
+ON d.order_id = o.order_id
+WHERE d.delivery_id IS NULL
+GROUP BY 1
+ORDER BY 2 DESC
+
+
+SELECT 
+	r.restaurant_name,
+	COUNT(*)
+FROM orders as o
+LEFT JOIN 
+restaurants as r
+ON r.restaurant_id = o.restaurant_id
+WHERE 
+	o.order_id NOT IN (SELECT order_id FROM deliveries)
+GROUP BY 1
+ORDER BY 2 DESC
+
+
+
+
+-- Q. 6
+-- Restaurant Revenue Ranking: 
+-- Rank restaurants by their total revenue from the last year, including their name, 
+-- total revenue, and rank within their city.
+
+WITH ranking_table
+AS
+(
+	SELECT 
+		r.city,
+		r.restaurant_name,
+		SUM(o.total_amount) as revenue,
+		RANK() OVER(PARTITION BY r.city ORDER BY SUM(o.total_amount) DESC) as rank
+	FROM orders as o
+	JOIN 
+	restaurants as r
+	ON r.restaurant_id = o.restaurant_id
+	WHERE o.order_date >= CURRENT_DATE - INTERVAL '1 year'
+	GROUP BY 1, 2
+)
+SELECT 
+	*
+FROM ranking_table
+WHERE rank = 1
+
+
+
+
+-- Q. 7
+-- Most Popular Dish by City: 
+-- Identify the most popular dish in each city based on the number of orders.
+
+SELECT * 
+FROM
+(SELECT 
+	r.city,
+	o.order_item as dish,
+	COUNT(order_id) as total_orders,
+	RANK() OVER(PARTITION BY r.city ORDER BY COUNT(order_id) DESC) as rank
+FROM orders as o
+JOIN 
+restaurants as r
+ON r.restaurant_id = o.restaurant_id
+GROUP BY 1, 2
+) as t1
+WHERE rank = 1
+
+
+
+-- Q.8 Customer Churn: 
+-- Find customers who haven’t placed an order in 2024 but did in 2023.
