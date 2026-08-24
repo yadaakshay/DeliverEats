@@ -259,3 +259,133 @@ WHERE rank = 1
 
 -- Q.8 Customer Churn: 
 -- Find customers who haven’t placed an order in 2024 but did in 2023.
+
+-- find cx who has done orders in 2023
+-- find cx who has not done orders in 2024
+-- compare 1 and 2
+
+SELECT DISTINCT customer_id FROM orders
+WHERE 
+	EXTRACT(YEAR FROM order_date) = 2023
+	AND
+	customer_id NOT IN 
+					(SELECT DISTINCT customer_id FROM orders
+					WHERE EXTRACT(YEAR FROM order_date) = 2024)
+
+
+
+
+
+-- Q.9 Cancellation Rate Comparison: 
+-- Calculate and compare the order cancellation rate for each restaurant between the 
+-- current year and the previous year.
+
+1/4 * 100 
+
+WITH cancel_ratio_23 AS (
+    SELECT 
+        o.restaurant_id,
+        COUNT(o.order_id) AS total_orders,
+        COUNT(CASE WHEN d.delivery_id IS NULL THEN 1 END) AS not_delivered
+    FROM orders AS o
+    LEFT JOIN deliveries AS d
+    ON o.order_id = d.order_id
+    WHERE EXTRACT(YEAR FROM o.order_date) = 2023
+    GROUP BY o.restaurant_id
+),
+cancel_ratio_24 AS (
+    SELECT 
+        o.restaurant_id,
+        COUNT(o.order_id) AS total_orders,
+        COUNT(CASE WHEN d.delivery_id IS NULL THEN 1 END) AS not_delivered
+    FROM orders AS o
+    LEFT JOIN deliveries AS d
+    ON o.order_id = d.order_id
+    WHERE EXTRACT(YEAR FROM o.order_date) = 2024
+    GROUP BY o.restaurant_id
+),
+last_year_data AS (
+    SELECT 
+        restaurant_id,
+        total_orders,
+        not_delivered,
+        ROUND((not_delivered::numeric / total_orders::numeric) * 100, 2) AS cancel_ratio
+    FROM cancel_ratio_23
+),
+current_year_data AS (
+    SELECT 
+        restaurant_id,
+        total_orders,
+        not_delivered,
+        ROUND((not_delivered::numeric / total_orders::numeric) * 100, 2) AS cancel_ratio
+    FROM cancel_ratio_24
+)	
+
+SELECT 
+    c.restaurant_id AS restaurant_id,
+    c.cancel_ratio AS current_year_cancel_ratio,
+    l.cancel_ratio AS last_year_cancel_ratio
+FROM current_year_data AS c
+JOIN last_year_data AS l
+ON c.restaurant_id = l.restaurant_id;
+
+
+
+
+
+-- Q.10 Rider Average Delivery Time: 
+-- Determine each rider's average delivery time.
+
+SELECT 
+    o.order_id,
+    o.order_time,
+    d.delivery_time,
+    d.rider_id,
+    d.delivery_time - o.order_time AS time_difference,
+	EXTRACT(EPOCH FROM (d.delivery_time - o.order_time + 
+	CASE WHEN d.delivery_time < o.order_time THEN INTERVAL '1 day' ELSE
+	INTERVAL '0 day' END))/60 as time_difference_insec
+FROM orders AS o
+JOIN deliveries AS d
+ON o.order_id = d.order_id
+WHERE d.delivery_status = 'Delivered';
+
+
+-- Q.11 Monthly Restaurant Growth Ratio: 
+-- Calculate each restaurant's growth ratio based on the total number of delivered orders since its joining
+
+last 20
+cm -- 30
+
+cs - ls/ls
+30-20/20 * 100
+
+
+
+
+WITH growth_ratio
+AS
+(
+SELECT 
+	o.restaurant_id,
+	EXTRACT(YEAR FROM o.order_date) as year,
+	EXTRACT(MONTH FROM o.order_date) as month,
+	COUNT(o.order_id) as cr_month_orders,
+	LAG(COUNT(o.order_id), 1) OVER(PARTITION BY o.restaurant_id ORDER BY EXTRACT(YEAR FROM o.order_date),
+    EXTRACT(MONTH FROM o.order_date)) as prev_month_orders
+FROM orders as o
+JOIN
+deliveries as d
+ON o.order_id = d.order_id
+WHERE d.delivery_status = 'Delivered'
+GROUP BY 1, 2, 3
+ORDER BY 1, 2
+)
+SELECT
+	restaurant_id,
+	month,
+	prev_month_orders,
+	cr_month_orders,
+	ROUND(
+	(cr_month_orders::numeric-prev_month_orders::numeric)/prev_month_orders::numeric * 100
+	,2)
