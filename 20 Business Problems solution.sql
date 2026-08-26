@@ -389,3 +389,133 @@ SELECT
 	ROUND(
 	(cr_month_orders::numeric-prev_month_orders::numeric)/prev_month_orders::numeric * 100
 	,2)
+	as growth_ratio
+FROM growth_ratio;
+
+
+
+
+-- Q.12 Customer Segmentation: 
+-- Customer Segmentation: Segment customers into 'Gold' or 'Silver' groups based on their total spending 
+-- compared to the average order value (AOV). If a customer's total spending exceeds the AOV, 
+-- label them as 'Gold'; otherwise, label them as 'Silver'. Write an SQL query to determine each segment's 
+-- total number of orders and total revenue
+
+-- cx total spend
+-- aov
+-- gold
+-- silver
+-- each category and total orders and total rev
+
+
+SELECT 
+	cx_category,
+	SUM(total_orders) as total_orders,
+	SUM(total_spent) as total_revenue
+FROM
+
+	(SELECT 
+		customer_id,
+		SUM(total_amount) as total_spent,
+		COUNT(order_id) as total_orders,
+		CASE 
+			WHEN SUM(total_amount) > (SELECT AVG(total_amount) FROM orders) THEN 'Gold'
+			ELSE 'silver'
+		END as cx_category
+	FROM orders
+	group by 1
+	) as t1
+GROUP BY 1
+
+
+
+SELECT AVG(total_amount) FROM orders -- 322
+
+
+
+
+-- Q.13 Rider Monthly Earnings: 
+-- Calculate each rider's total monthly earnings, assuming they earn 8% of the order amount.
+
+SELECT 
+	d.rider_id,
+	TO_CHAR(o.order_date, 'mm-yy') as month,
+	SUM(total_amount) as revenue,
+	SUM(total_amount)* 0.08 as riders_earning
+FROM orders as o
+JOIN deliveries as d
+ON o.order_id = d.order_id
+GROUP BY 1, 2
+ORDER BY 1, 2
+
+
+
+
+
+
+-- Q.14 Rider Ratings Analysis: 
+-- Find the number of 5-star, 4-star, and 3-star ratings each rider has.
+-- riders receive this rating based on delivery time.
+-- If orders are delivered less than 15 minutes of order received time the rider get 5 star rating,
+-- if they deliver 15 and 20 minute they get 4 star rating 
+-- if they deliver after 20 minute they get 3 star rating.
+
+
+SELECT 
+	rider_id,
+	stars,
+	COUNT(*) as total_stars
+FROM
+(
+	SELECT
+		rider_id,
+		delivery_took_time,
+		CASE 
+			WHEN delivery_took_time < 15 THEN '5 star'
+			WHEN delivery_took_time BETWEEN 15 AND 20 THEN '4 star'
+			ELSE '3 star'
+		END as stars
+		
+	FROM
+	(
+		SELECT 
+			o.order_id,
+			o.order_time,
+			d.delivery_time,
+			EXTRACT(EPOCH FROM (d.delivery_time - o.order_time + 
+			CASE WHEN d.delivery_time < o.order_time THEN INTERVAL '1 day' 
+			ELSE INTERVAL '0 day' END
+			))/60 as delivery_took_time,
+			d.rider_id
+		FROM orders as o
+		JOIN deliveries as d
+		ON o.order_id = d.order_id
+		WHERE delivery_status = 'Delivered'
+	) as t1
+) as t2
+GROUP BY 1, 2
+ORDER BY 1, 3 DESC
+
+
+-- Q.15 Order Frequency by Day: 
+-- Analyze order frequency per day of the week and identify the peak day for each restaurant.
+
+SELECT * FROM
+(
+	SELECT 
+		r.restaurant_name,
+		-- o.order_date,
+		TO_CHAR(o.order_date, 'Day') as day,
+		COUNT(o.order_id) as total_orders,
+		RANK() OVER(PARTITION BY r.restaurant_name ORDER BY COUNT(o.order_id)  DESC) as rank
+	FROM orders as o
+	JOIN
+	restaurants as r
+	ON o.restaurant_id = r.restaurant_id
+	GROUP BY 1, 2
+	ORDER BY 1, 3 DESC
+	) as t1
+WHERE rank = 1
+
+
+
