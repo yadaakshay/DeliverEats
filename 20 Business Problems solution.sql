@@ -629,3 +629,71 @@ GROUP BY 1
 
 
 -- =========================================
+-- PRODUCT ANALYTICS ADVANCED QUERIES
+-- =========================================
+
+-- Q21. Funnel Analysis: Calculate drop-off rates at each stage of the app experience
+WITH funnel AS (
+    SELECT 
+        COUNT(DISTINCT CASE WHEN event_type = 'app_open' THEN session_id END) as app_opens,
+        COUNT(DISTINCT CASE WHEN event_type = 'search' THEN session_id END) as searches,
+        COUNT(DISTINCT CASE WHEN event_type = 'view_restaurant' THEN session_id END) as restaurant_views,
+        COUNT(DISTINCT CASE WHEN event_type = 'add_to_cart' THEN session_id END) as cart_additions,
+        COUNT(DISTINCT CASE WHEN event_type = 'checkout' THEN session_id END) as checkouts,
+        COUNT(DISTINCT CASE WHEN event_type = 'payment' THEN session_id END) as successful_payments
+    FROM app_events
+)
+SELECT 
+    app_opens,
+    ROUND(searches * 100.0 / NULLIF(app_opens, 0), 2) as search_conversion_pct,
+    ROUND(restaurant_views * 100.0 / NULLIF(searches, 0), 2) as view_conversion_pct,
+    ROUND(cart_additions * 100.0 / NULLIF(restaurant_views, 0), 2) as cart_conversion_pct,
+    ROUND(checkouts * 100.0 / NULLIF(cart_additions, 0), 2) as checkout_conversion_pct,
+    ROUND(successful_payments * 100.0 / NULLIF(checkouts, 0), 2) as payment_conversion_pct,
+    ROUND(successful_payments * 100.0 / NULLIF(app_opens, 0), 2) as total_funnel_conversion_pct
+FROM funnel;
+
+
+-- Q22. A/B Testing Evaluation: Impact of New Checkout UI on Conversion Rate
+WITH experiment_sessions AS (
+    SELECT 
+        ab.experiment_group,
+        COUNT(DISTINCT CASE WHEN ae.event_type = 'checkout' THEN ae.session_id END) as total_checkouts,
+        COUNT(DISTINCT CASE WHEN ae.event_type = 'payment' THEN ae.session_id END) as total_payments
+    FROM ab_experiments ab
+    JOIN app_events ae ON ab.customer_id = ae.customer_id
+    WHERE ab.experiment_id = 'EXP_CHECKOUT_UI_01'
+    GROUP BY ab.experiment_group
+)
+SELECT 
+    experiment_group,
+    total_checkouts,
+    total_payments,
+    ROUND(total_payments * 100.0 / NULLIF(total_checkouts, 0), 2) as conversion_rate_pct
+FROM experiment_sessions;
+
+
+-- Q23. Customer Cohort Retention (Monthly active returning users)
+WITH first_order AS (
+    SELECT 
+        customer_id, 
+        DATE_TRUNC('month', MIN(order_date)) as cohort_month
+    FROM orders 
+    GROUP BY customer_id
+),
+active_months AS (
+    SELECT DISTINCT 
+        customer_id, 
+        DATE_TRUNC('month', order_date) as active_month
+    FROM orders
+)
+SELECT 
+    f.cohort_month,
+    COUNT(DISTINCT f.customer_id) as cohort_size,
+    COUNT(DISTINCT CASE WHEN a.active_month = f.cohort_month + INTERVAL '1 month' THEN a.customer_id END) as month_1_retained,
+    COUNT(DISTINCT CASE WHEN a.active_month = f.cohort_month + INTERVAL '2 months' THEN a.customer_id END) as month_2_retained,
+    COUNT(DISTINCT CASE WHEN a.active_month = f.cohort_month + INTERVAL '3 months' THEN a.customer_id END) as month_3_retained
+FROM first_order f
+LEFT JOIN active_months a ON f.customer_id = a.customer_id
+GROUP BY f.cohort_month
+ORDER BY f.cohort_month;
