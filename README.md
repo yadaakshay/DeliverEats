@@ -1,8 +1,8 @@
-﻿[# SQL Project: Product Analytics for DeliverEats – A Food Delivery Company
+[# SQL Project: Product Analytics for DeliverEats – A Food Delivery Company
 
 ## 📌 Overview
 
-This project showcases my ability to work with relational databases using SQL. I’ve built and analyzed a fictional food delivery platform called **DeliverEats**, where I used PostgreSQL to create schemas, clean data, and solve business problems through real-world SQL queries.
+This project showcases my ability to work with relational databases using SQL. I’ve built and analyzed a fictional food delivery platform called **DeliverEats**, where I used MySQL 8.0+ to create schemas, clean data, and solve business problems through real-world SQL queries.
 
 **DeliverEats** is a data-driven project reflecting the goal of exploring food ordering patterns and business performance insights in the restaurant delivery ecosystem.
 
@@ -12,7 +12,7 @@ In addition to SQL analysis, I’ve also created a **Power BI dashboard** to vis
 
 ## 🗂️ Project Highlights
 
-* ✅ Created and managed a PostgreSQL database (`DeliverEats_db`)
+* ✅ Created and managed a MySQL 8.0+ database (`DeliverEats_db`)
 * ✅ Designed normalized tables for customers, restaurants, orders, deliveries, and riders
 * ✅ Imported structured CSV data into each table
 * ✅ Cleaned and handled null/missing data
@@ -70,8 +70,8 @@ Users can toggle between **Amount** and **Quantity** views. Filters like **Top 5
 
 ## 🛠️ Tools Used
 
-* **PostgreSQL**
-* **pgAdmin 4**
+* **MySQL 8.0+**
+* **MySQL Workbench**
 * **SQL**
 * **Power BI**
 
@@ -94,8 +94,8 @@ The database includes the following tables:
 ## 🚀 How to Use This Project
 
 1. Clone the repo or download the files.
-2. Open **pgAdmin 4**.
-3. Run `DeliverEats_Schema.sql` to set up all tables.
+2. Open **MySQL Workbench** and connect to your MySQL server.
+3. Run `DeliverEats_Schemas.sql` to set up all tables.
 4. Import CSV data into each table in this order:
 
    * customers → restaurants → orders → riders → deliveries
