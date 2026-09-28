@@ -10,6 +10,8 @@ USE DeliverEats_db;
 
 
 -- Drop existing tables if they exist
+DROP TABLE IF EXISTS app_events;
+DROP TABLE IF EXISTS ab_experiments;
 DROP TABLE IF EXISTS deliveries;
 DROP TABLE IF EXISTS Orders;
 DROP TABLE IF EXISTS customers;
