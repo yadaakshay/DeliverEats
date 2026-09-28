@@ -89,7 +89,7 @@ FROM -- table name
 	customers as c
 	ON c.customer_id = o.customer_id
 	WHERE 
-		o.order_date >= CURRENT_DATE - INTERVAL '1 Year'
+		o.order_date >= CURRENT_DATE - INTERVAL 1 YEAR
 		AND 
 		c.customer_name = 'Arjun Mehta'
 	GROUP BY 1, 2, 3
@@ -105,18 +105,18 @@ WHERE rank <= 5
 -- Approach 1
 SELECT
     CASE
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 0 AND 1 THEN '00:00 - 02:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 2 AND 3 THEN '02:00 - 04:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 4 AND 5 THEN '04:00 - 06:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 6 AND 7 THEN '06:00 - 08:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 8 AND 9 THEN '08:00 - 10:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 10 AND 11 THEN '10:00 - 12:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 12 AND 13 THEN '12:00 - 14:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 14 AND 15 THEN '14:00 - 16:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 16 AND 17 THEN '16:00 - 18:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 18 AND 19 THEN '18:00 - 20:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 20 AND 21 THEN '20:00 - 22:00'
-        WHEN EXTRACT(HOUR FROM order_time) BETWEEN 22 AND 23 THEN '22:00 - 00:00'
+        WHEN HOUR(order_time) BETWEEN 0 AND 1 THEN '00:00 - 02:00'
+        WHEN HOUR(order_time) BETWEEN 2 AND 3 THEN '02:00 - 04:00'
+        WHEN HOUR(order_time) BETWEEN 4 AND 5 THEN '04:00 - 06:00'
+        WHEN HOUR(order_time) BETWEEN 6 AND 7 THEN '06:00 - 08:00'
+        WHEN HOUR(order_time) BETWEEN 8 AND 9 THEN '08:00 - 10:00'
+        WHEN HOUR(order_time) BETWEEN 10 AND 11 THEN '10:00 - 12:00'
+        WHEN HOUR(order_time) BETWEEN 12 AND 13 THEN '12:00 - 14:00'
+        WHEN HOUR(order_time) BETWEEN 14 AND 15 THEN '14:00 - 16:00'
+        WHEN HOUR(order_time) BETWEEN 16 AND 17 THEN '16:00 - 18:00'
+        WHEN HOUR(order_time) BETWEEN 18 AND 19 THEN '18:00 - 20:00'
+        WHEN HOUR(order_time) BETWEEN 20 AND 21 THEN '20:00 - 22:00'
+        WHEN HOUR(order_time) BETWEEN 22 AND 23 THEN '22:00 - 00:00'
     END AS time_slot,
     COUNT(order_id) AS order_count
 FROM Orders
@@ -126,8 +126,8 @@ ORDER BY order_count DESC;
 
 -- Approach 2
 SELECT 
-	FLOOR(EXTRACT(HOUR FROM order_time)/2)*2 as start_time,
-	FLOOR(EXTRACT(HOUR FROM order_time)/2)*2 + 2 as end_time,
+	FLOOR(HOUR(order_time)/2)*2 as start_time,
+	FLOOR(HOUR(order_time)/2)*2 + 2 as end_time,
 	COUNT(*) as total_orders
 FROM orders
 GROUP BY 1, 2
@@ -225,7 +225,7 @@ AS
 	JOIN 
 	restaurants as r
 	ON r.restaurant_id = o.restaurant_id
-	WHERE o.order_date >= CURRENT_DATE - INTERVAL '1 year'
+	WHERE o.order_date >= CURRENT_DATE - INTERVAL 1 YEAR
 	GROUP BY 1, 2
 )
 SELECT 
@@ -266,11 +266,11 @@ WHERE rank = 1
 
 SELECT DISTINCT customer_id FROM orders
 WHERE 
-	EXTRACT(YEAR FROM order_date) = 2023
+	YEAR(order_date) = 2023
 	AND
 	customer_id NOT IN 
 					(SELECT DISTINCT customer_id FROM orders
-					WHERE EXTRACT(YEAR FROM order_date) = 2024)
+					WHERE YEAR(order_date) = 2024)
 
 
 
@@ -290,7 +290,7 @@ WITH cancel_ratio_23 AS (
     FROM orders AS o
     LEFT JOIN deliveries AS d
     ON o.order_id = d.order_id
-    WHERE EXTRACT(YEAR FROM o.order_date) = 2023
+    WHERE YEAR(o.order_date) = 2023
     GROUP BY o.restaurant_id
 ),
 cancel_ratio_24 AS (
@@ -301,7 +301,7 @@ cancel_ratio_24 AS (
     FROM orders AS o
     LEFT JOIN deliveries AS d
     ON o.order_id = d.order_id
-    WHERE EXTRACT(YEAR FROM o.order_date) = 2024
+    WHERE YEAR(o.order_date) = 2024
     GROUP BY o.restaurant_id
 ),
 last_year_data AS (
@@ -309,7 +309,7 @@ last_year_data AS (
         restaurant_id,
         total_orders,
         not_delivered,
-        ROUND((not_delivered::numeric / total_orders::numeric) * 100, 2) AS cancel_ratio
+        ROUND((CAST(not_delivered AS DECIMAL(12,2)) / CAST(total_orders AS DECIMAL(12,2))) * 100, 2) AS cancel_ratio
     FROM cancel_ratio_23
 ),
 current_year_data AS (
@@ -317,7 +317,7 @@ current_year_data AS (
         restaurant_id,
         total_orders,
         not_delivered,
-        ROUND((not_delivered::numeric / total_orders::numeric) * 100, 2) AS cancel_ratio
+        ROUND((CAST(not_delivered AS DECIMAL(12,2)) / CAST(total_orders AS DECIMAL(12,2))) * 100, 2) AS cancel_ratio
     FROM cancel_ratio_24
 )	
 
@@ -342,9 +342,7 @@ SELECT
     d.delivery_time,
     d.rider_id,
     d.delivery_time - o.order_time AS time_difference,
-	EXTRACT(EPOCH FROM (d.delivery_time - o.order_time + 
-	CASE WHEN d.delivery_time < o.order_time THEN INTERVAL '1 day' ELSE
-	INTERVAL '0 day' END))/60 as time_difference_insec
+	TIME_TO_SEC(ADDTIME(TIMEDIFF(d.delivery_time, o.order_time), CASE WHEN d.delivery_time < o.order_time THEN '24:00:00' ELSE '00:00:00' END)) / 60 as time_difference_insec
 FROM orders AS o
 JOIN deliveries AS d
 ON o.order_id = d.order_id
@@ -368,11 +366,11 @@ AS
 (
 SELECT 
 	o.restaurant_id,
-	EXTRACT(YEAR FROM o.order_date) as year,
-	EXTRACT(MONTH FROM o.order_date) as month,
+	YEAR(o.order_date) as year,
+	MONTH(o.order_date) as month,
 	COUNT(o.order_id) as cr_month_orders,
-	LAG(COUNT(o.order_id), 1) OVER(PARTITION BY o.restaurant_id ORDER BY EXTRACT(YEAR FROM o.order_date),
-    EXTRACT(MONTH FROM o.order_date)) as prev_month_orders
+	LAG(COUNT(o.order_id), 1) OVER(PARTITION BY o.restaurant_id ORDER BY YEAR(o.order_date),
+    MONTH(o.order_date)) as prev_month_orders
 FROM orders as o
 JOIN
 deliveries as d
@@ -387,7 +385,7 @@ SELECT
 	prev_month_orders,
 	cr_month_orders,
 	ROUND(
-	(cr_month_orders::numeric-prev_month_orders::numeric)/prev_month_orders::numeric * 100
+	(CAST(cr_month_orders AS DECIMAL(12,2))-CAST(prev_month_orders AS DECIMAL(12,2)))/CAST(prev_month_orders AS DECIMAL(12,2)) * 100
 	,2)
 	as growth_ratio
 FROM growth_ratio;
@@ -439,7 +437,7 @@ SELECT AVG(total_amount) FROM orders -- 322
 
 SELECT 
 	d.rider_id,
-	TO_CHAR(o.order_date, 'mm-yy') as month,
+	DATE_FORMAT(o.order_date, '%m-%y') as month,
 	SUM(total_amount) as revenue,
 	SUM(total_amount)* 0.08 as riders_earning
 FROM orders as o
@@ -482,10 +480,7 @@ FROM
 			o.order_id,
 			o.order_time,
 			d.delivery_time,
-			EXTRACT(EPOCH FROM (d.delivery_time - o.order_time + 
-			CASE WHEN d.delivery_time < o.order_time THEN INTERVAL '1 day' 
-			ELSE INTERVAL '0 day' END
-			))/60 as delivery_took_time,
+			TIME_TO_SEC(ADDTIME(TIMEDIFF(d.delivery_time, o.order_time), CASE WHEN d.delivery_time < o.order_time THEN '24:00:00' ELSE '00:00:00' END)) / 60 as delivery_took_time,
 			d.rider_id
 		FROM orders as o
 		JOIN deliveries as d
@@ -505,7 +500,7 @@ SELECT * FROM
 	SELECT 
 		r.restaurant_name,
 		-- o.order_date,
-		TO_CHAR(o.order_date, 'Day') as day,
+		DAYNAME(o.order_date) as day,
 		COUNT(o.order_id) as total_orders,
 		RANK() OVER(PARTITION BY r.restaurant_name ORDER BY COUNT(o.order_id)  DESC) as rank
 	FROM orders as o
@@ -538,10 +533,10 @@ GROUP BY 1, 2
 -- Identify sales trends by comparing each month's total sales to the previous month.
 
 SELECT 
-	EXTRACT(YEAR FROM order_date) as year,
-	EXTRACT(MONTH FROM order_date) as month,
+	YEAR(order_date) as year,
+	MONTH(order_date) as month,
 	SUM(total_amount) as total_sale,
-	LAG(SUM(total_amount), 1) OVER(ORDER BY EXTRACT(YEAR FROM order_date), EXTRACT(MONTH FROM order_date)) as prev_month_sale
+	LAG(SUM(total_amount), 1) OVER(ORDER BY YEAR(order_date), MONTH(order_date)) as prev_month_sale
 FROM orders
 GROUP BY 1, 2
 
@@ -558,9 +553,7 @@ AS
 	SELECT 
 		*,
 		d.rider_id as riders_id,
-		EXTRACT(EPOCH FROM (d.delivery_time - o.order_time + 
-		CASE WHEN d.delivery_time < o.order_time THEN INTERVAL '1 day' ELSE
-		INTERVAL '0 day' END))/60 as time_deliver
+		TIME_TO_SEC(ADDTIME(TIMEDIFF(d.delivery_time, o.order_time), CASE WHEN d.delivery_time < o.order_time THEN '24:00:00' ELSE '00:00:00' END)) / 60 as time_deliver
 	FROM orders as o
 	JOIN deliveries as d
 	ON o.order_id = d.order_id
@@ -594,11 +587,11 @@ FROM
 (
 SELECT 
 		*,
-		EXTRACT(MONTH FROM order_date) as month,
+		MONTH(order_date) as month,
 		CASE 
-			WHEN EXTRACT(MONTH FROM order_date) BETWEEN 4 AND 6 THEN 'Spring'
-			WHEN EXTRACT(MONTH FROM order_date) > 6 AND 
-			EXTRACT(MONTH FROM order_date) < 9 THEN 'Summer'
+			WHEN MONTH(order_date) BETWEEN 4 AND 6 THEN 'Spring'
+			WHEN MONTH(order_date) > 6 AND 
+			MONTH(order_date) < 9 THEN 'Summer'
 			ELSE 'Winter'
 		END as seasons
 	FROM orders
@@ -677,22 +670,22 @@ FROM experiment_sessions;
 WITH first_order AS (
     SELECT 
         customer_id, 
-        DATE_TRUNC('month', MIN(order_date)) as cohort_month
+        STR_TO_DATE(DATE_FORMAT(MIN(order_date), '%Y-%m-01'), '%Y-%m-%d') as cohort_month
     FROM orders 
     GROUP BY customer_id
 ),
 active_months AS (
     SELECT DISTINCT 
         customer_id, 
-        DATE_TRUNC('month', order_date) as active_month
+        STR_TO_DATE(DATE_FORMAT(order_date, '%Y-%m-01'), '%Y-%m-%d') as active_month
     FROM orders
 )
 SELECT 
     f.cohort_month,
     COUNT(DISTINCT f.customer_id) as cohort_size,
-    COUNT(DISTINCT CASE WHEN a.active_month = f.cohort_month + INTERVAL '1 month' THEN a.customer_id END) as month_1_retained,
-    COUNT(DISTINCT CASE WHEN a.active_month = f.cohort_month + INTERVAL '2 months' THEN a.customer_id END) as month_2_retained,
-    COUNT(DISTINCT CASE WHEN a.active_month = f.cohort_month + INTERVAL '3 months' THEN a.customer_id END) as month_3_retained
+    COUNT(DISTINCT CASE WHEN a.active_month = DATE_ADD(f.cohort_month, INTERVAL 1 MONTH) THEN a.customer_id END) as month_1_retained,
+    COUNT(DISTINCT CASE WHEN a.active_month = DATE_ADD(f.cohort_month, INTERVAL 2 MONTH) THEN a.customer_id END) as month_2_retained,
+    COUNT(DISTINCT CASE WHEN a.active_month = DATE_ADD(f.cohort_month, INTERVAL 3 MONTH) THEN a.customer_id END) as month_3_retained
 FROM first_order f
 LEFT JOIN active_months a ON f.customer_id = a.customer_id
 GROUP BY f.cohort_month
