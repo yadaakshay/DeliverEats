@@ -1,7 +1,8 @@
 --- SQL Project – DeliverEats
 -- DeliverEats: A Fictional Food Delivery Company
 
-CREATE DATABASE DeliverEats_db;
+CREATE DATABASE IF NOT EXISTS DeliverEats_db;
+USE DeliverEats_db;
 
 -- Connect to DeliverEats_db;
 
@@ -17,7 +18,7 @@ DROP TABLE IF EXISTS riders;
 
 -- Create restaurants table
 CREATE TABLE restaurants (
-    restaurant_id SERIAL PRIMARY KEY,
+    restaurant_id INT AUTO_INCREMENT PRIMARY KEY,
     restaurant_name VARCHAR(100) NOT NULL,
     city VARCHAR(50),
     opening_hours VARCHAR(50)
@@ -25,21 +26,21 @@ CREATE TABLE restaurants (
 
 -- Create customers table
 CREATE TABLE customers (
-    customer_id SERIAL PRIMARY KEY,
+    customer_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_name VARCHAR(100) NOT NULL,
     reg_date DATE
 );
 
 -- Create riders table
 CREATE TABLE riders (
-    rider_id SERIAL PRIMARY KEY,
+    rider_id INT AUTO_INCREMENT PRIMARY KEY,
     rider_name VARCHAR(100) NOT NULL,
     sign_up DATE
 );
 
 -- Create Orders table
 CREATE TABLE Orders (
-    order_id SERIAL PRIMARY KEY,
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT,
     restaurant_id INT,
     order_item VARCHAR(255),
@@ -53,7 +54,7 @@ CREATE TABLE Orders (
 
 -- Create deliveries table
 CREATE TABLE deliveries (
-    delivery_id SERIAL PRIMARY KEY,
+    delivery_id INT AUTO_INCREMENT PRIMARY KEY,
     order_id INT,
     delivery_status VARCHAR(20) DEFAULT 'Pending',
     delivery_time TIME,
@@ -89,7 +90,7 @@ SELECT * FROM deliveries;
 
 -- Create app_events table for Product Analytics (Funnels, Sessions)
 CREATE TABLE app_events (
-    event_id SERIAL PRIMARY KEY,
+    event_id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT,
     session_id VARCHAR(50),
     event_type VARCHAR(50),
